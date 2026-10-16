@@ -1,0 +1,34 @@
+services:
+  db:
+    image: postgres:16
+    container_name: ecommerce_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-cocodevs-db}
+      POSTGRES_USER: ${POSTGRES_USER:-ecommerce_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Falta POSTGRES_PASSWORD en el archivo .env}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data            # datos persistentes
+      - ./db/init:/docker-entrypoint-initdb.d:ro   # scripts que corren SOLO la primera vez
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Interfaz web opcional: docker compose --profile tools up -d  ->  http://localhost:8080
+  adminer:
+    image: adminer
+    container_name: ecommerce_adminer
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    profiles: ["tools"]
+
+volumes:
+  pgdata:
